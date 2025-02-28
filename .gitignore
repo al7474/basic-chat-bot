@@ -1,0 +1,18 @@
+# Ignore virtual environments
+venv/
+.env
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore model weights (large files)
+*.bin
+*.ckpt
+
+# Ignore dataset files
+*.csv
+*.json
+*.tsv
