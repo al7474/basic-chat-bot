@@ -42,6 +42,7 @@ class UserMessage(BaseModel):
     message: str
     model: str = "gemini"  # Por defecto usa Gemini
     cliente_id: str = None
+    session_id: str = None
 
 # Registro
 @app.post("/register")
@@ -66,13 +67,38 @@ async def login(data: LoginRequest):
 
 @app.post("/chat/")
 async def chat_with_bot(user_message: UserMessage):
-    """Chat endpoint for sending user messages to the bot."""
+    """Chat endpoint for sending user messages to the bot and saving conversation."""
+    # Buscar o crear sesión
+    session = None
+    if hasattr(user_message, 'session_id') and user_message.session_id:
+        session = await db.session.find_unique(where={"id": user_message.session_id})
+    if not session:
+        session = await db.session.create({
+            "userId": user_message.cliente_id,
+            "clientId": None
+        })
+    # Guardar mensaje del usuario
+    await db.conversation.create({
+        "message": user_message.message,
+        "sender": "user",
+        "sessionId": session.id,
+        "userId": user_message.cliente_id,
+        "clientId": None
+    })
+    # Obtener respuesta del bot
     if user_message.model == "groq":
-        # Puedes pasar más parámetros si lo deseas (cliente_id, restaurant_name)
         response = generate_response_groq(user_message.message)
     else:
         response = generate_response(user_message.message)
-    return {"reply": response}
+    # Guardar respuesta del bot
+    await db.conversation.create({
+        "message": response,
+        "sender": "bot",
+        "sessionId": session.id,
+        "userId": user_message.cliente_id,
+        "clientId": None
+    })
+    return {"reply": response, "session_id": session.id}
 
 # Root route for testing
 @app.get("/")

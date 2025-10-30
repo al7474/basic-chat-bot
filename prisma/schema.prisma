@@ -17,12 +17,14 @@ model User {
   password  String
   createdAt DateTime @default(now())
   conversations Conversation[]
+  sessions      Session[]
 }
 
 model Client {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   conversations Conversation[]
+  sessions      Session[]
 }
 
 model Conversation {
@@ -31,7 +33,19 @@ model Conversation {
   clientId   String?
   user       User?    @relation(fields: [userId], references: [id])
   userId     String?
+  session    Session? @relation(fields: [sessionId], references: [id])
+  sessionId  String?
   message    String
   sender     String   // 'user' o 'bot'
   createdAt  DateTime @default(now())
+}
+
+model Session {
+  id            String         @id @default(uuid())
+  createdAt     DateTime       @default(now())
+  user          User?          @relation(fields: [userId], references: [id])
+  userId        String?
+  client        Client?        @relation(fields: [clientId], references: [id])
+  clientId      String?
+  conversations Conversation[]
 }
