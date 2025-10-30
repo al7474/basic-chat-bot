@@ -1,0 +1,37 @@
+// Prisma schema for PostgreSQL database 'basic_chatbot'
+// Run `prisma migrate dev` after editing this file
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id        String   @id @default(uuid())
+  username  String  @unique
+  password  String
+  createdAt DateTime @default(now())
+  conversations Conversation[]
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  conversations Conversation[]
+}
+
+model Conversation {
+  id         String   @id @default(uuid())
+  client     Client?  @relation(fields: [clientId], references: [id])
+  clientId   String?
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  message    String
+  sender     String   // 'user' o 'bot'
+  createdAt  DateTime @default(now())
+}

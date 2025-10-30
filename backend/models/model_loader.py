@@ -1,33 +1,46 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
 
-# Model Name (Using DialoGPT-medium)
-MODEL_NAME = "microsoft/DialoGPT-medium"
+import requests
+import os
+from dotenv import load_dotenv
 
-# Load Tokenizer & Model
-print("Loading DialoGPT model...")
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME).to("cuda" if torch.cuda.is_available() else "cpu")
-
-print("✅ DialoGPT model loaded successfully!")
-
+# Cargar .env desde la raíz del proyecto
+from pathlib import Path
+env_path = Path(__file__).resolve().parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 def generate_response(user_input: str) -> str:
-    """Generates a response from the chatbot model."""
-
+    """Generates a response from the Google Gemini API."""
     if not user_input.strip():
-        return "I'm here! How can I help you?"  # Handle empty input
+        return "I'm here! How can I help you?"
+
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-goog-api-key": API_KEY
+    }
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": user_input}
+                ]
+            }
+        ]
+    }
 
     try:
-        # Tokenize input
-        inputs = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Generate response
-        output = model.generate(inputs, max_new_tokens=50, pad_token_id=tokenizer.eos_token_id)
-
-        # Decode response
-        response = tokenizer.decode(output[:, inputs.shape[-1]:][0], skip_special_tokens=True)
-        return response
-
+        response = requests.post(
+            GEMINI_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        response.raise_for_status()
+        data = response.json()
+        # Ajusta el acceso según la estructura de la respuesta de Gemini
+        return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
-        print(f"❌ Error generating response: {e}")
-        return "Oops! Something went wrong."
+        print(f"❌ Error connecting to Gemini API: {e}")
+        return "Oops! Couldn't connect to Gemini API."
+

@@ -8,10 +8,39 @@
   </head>
   <body>
     <div class="chat-container">
-      <div class="chat-box" id="chat-box"></div>
-      <input type="text" id="user-input" placeholder="Type a message..." />
-      <button onclick="sendMessage()">Send</button>
+      <div id="auth-forms">
+        <div id="login-form">
+          <h3>Iniciar Sesión</h3>
+          <input type="text" id="login-username" placeholder="Usuario" />
+          <input type="password" id="login-password" placeholder="Contraseña" />
+          <button onclick="loginUser()">Entrar</button>
+          <p>¿No tienes cuenta? <a href="#" onclick="showRegister()">Regístrate</a></p>
+        </div>
+        <div id="register-form" style="display:none;">
+          <h3>Registro</h3>
+          <input type="text" id="register-username" placeholder="Usuario" />
+          <input type="password" id="register-password" placeholder="Contraseña" />
+          <button onclick="registerUser()">Registrar</button>
+          <p>¿Ya tienes cuenta? <a href="#" onclick="showLogin()">Inicia sesión</a></p>
+        </div>
+      </div>
+      <div id="chat-ui" style="display:none;">
+        <div class="chat-box" id="chat-box"></div>
+        <div style="margin-bottom: 10px;">
+          <label for="model-select"><strong>Modelo:</strong></label>
+          <select id="model-select">
+            <option value="gemini">Gemini</option>
+            <option value="groq">Groq</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label for="client-id"><strong>ID Cliente:</strong></label>
+          <input type="text" id="client-id" value="cliente_demo" style="width: 120px;" readonly />
+        </div>
+        <input type="text" id="user-input" placeholder="Type a message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
     </div>
-    <script src="script.js"></script>
+  <script src="script.js"></script>
   </body>
 </html>
