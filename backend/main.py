@@ -1,5 +1,6 @@
 
-from fastapi import Query
+
+from fastapi import Query, Request
 
 
 from fastapi import FastAPI, HTTPException
@@ -43,11 +44,13 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+from typing import Optional
+
 class UserMessage(BaseModel):
     message: str
     model: str = "gemini"  # Por defecto usa Gemini
-    cliente_id: str = None
-    session_id: str = None
+    cliente_id: Optional[str] = None
+    session_id: Optional[str] = None
 
 # Registro
 @app.post("/register")
@@ -70,9 +73,16 @@ async def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     return {"user_id": user.id, "username": user.username}
 
+from fastapi import Body
+
 @app.post("/chat/")
-async def chat_with_bot(user_message: UserMessage):
-    """Chat endpoint for sending user messages to the bot and saving conversation."""
+async def chat_with_bot(request: Request, body: dict = Body(...)):
+    print("[DEBUG] Body recibido:", body)
+    try:
+        user_message = UserMessage(**body)
+    except Exception as e:
+        print("[DEBUG] Error al parsear UserMessage:", e)
+        raise HTTPException(status_code=422, detail=f"Error al parsear UserMessage: {e}")
     # Buscar o crear sesión
     session = None
     if hasattr(user_message, 'session_id') and user_message.session_id:

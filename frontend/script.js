@@ -2,19 +2,26 @@
 async function loadSessionHistory() {
   let chatBox = document.getElementById("chat-box");
   chatBox.innerHTML = "";
-  let userId = localStorage.getItem('userId') || document.getElementById("client-id").value;
+  let userId =
+    localStorage.getItem("userId") ||
+    document.getElementById("client-id").value;
   // Obtener todas las sesiones del usuario
-  let sessionsRes = await fetch(`http://127.0.0.1:8000/user/${userId}/sessions`);
+  let sessionsRes = await fetch(
+    `http://127.0.0.1:8000/user/${userId}/sessions`
+  );
   if (!sessionsRes.ok) return;
   let sessions = await sessionsRes.json();
   for (let session of sessions) {
-    let res = await fetch(`http://127.0.0.1:8000/session/${session.id}/history?cliente_id=${userId}`);
+    let res = await fetch(
+      `http://127.0.0.1:8000/session/${session.id}/history?cliente_id=${userId}`
+    );
     if (res.ok) {
       let data = await res.json();
       if (data.history.length > 0) {
-        // Guardar este sessionId como el actual
-        localStorage.setItem('sessionId', session.id);
-        data.history.forEach(msg => {
+        if (!localStorage.getItem("sessionId")) {
+          localStorage.setItem("sessionId", session.id);
+        }
+        data.history.forEach((msg) => {
           if (msg.sender === "user") {
             chatBox.innerHTML += `<p><strong>You:</strong> ${msg.message}</p>`;
           } else {
@@ -27,22 +34,24 @@ async function loadSessionHistory() {
   }
 }
 // --- Manejo de expiración automática de sesión ---
-const SESSION_TIMEOUT_MINUTES = 15;
+const SESSION_TIMEOUT_MINUTES = 1;
 let sessionTimeoutHandle = null;
 
 function resetSessionTimeout() {
   if (sessionTimeoutHandle) clearTimeout(sessionTimeoutHandle);
   sessionTimeoutHandle = setTimeout(() => {
-    // Antes de borrar el sessionId, guardar el anterior
-    let currentSessionId = localStorage.getItem('sessionId');
+    // Guardar el sessionId anterior
+    let currentSessionId = localStorage.getItem("sessionId");
     if (currentSessionId) {
-      localStorage.setItem('lastSessionId', currentSessionId);
+      localStorage.setItem("lastSessionId", currentSessionId);
     }
-    localStorage.removeItem('sessionId');
-    // Opcional: notificar al usuario
+    // Solo borra el sessionId, NO limpies el chat
+    localStorage.removeItem("sessionId");
+    // Notifica al usuario pero NO limpies el historial
     const chatBox = document.getElementById("chat-box");
     if (chatBox) {
-      chatBox.innerHTML += '<p style="color:gray;"><em>La sesión ha expirado, se iniciará una nueva conversación.</em></p>';
+      chatBox.innerHTML +=
+        '<p style="color:gray;"><em>La sesión ha expirado, tus próximos mensajes se guardarán como una nueva conversación, pero puedes seguir escribiendo aquí.</em></p>';
     }
   }, SESSION_TIMEOUT_MINUTES * 60 * 1000);
 }
@@ -67,7 +76,7 @@ async function registerUser() {
   const res = await fetch("http://127.0.0.1:8000/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username, password }),
   });
   if (res.ok) {
     alert("Registro exitoso, ahora inicia sesión");
@@ -87,12 +96,12 @@ async function loginUser() {
   const res = await fetch("http://127.0.0.1:8000/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username, password }),
   });
   if (res.ok) {
     const data = await res.json();
     // Guardar sesión y usuario en LocalStorage
-    localStorage.setItem('userId', data.user_id);
+    localStorage.setItem("userId", data.user_id);
     document.getElementById("auth-forms").style.display = "none";
     document.getElementById("chat-ui").style.display = "block";
     document.getElementById("client-id").value = data.user_id;
@@ -104,8 +113,8 @@ async function loginUser() {
 
 function logoutUser() {
   // Borrar datos de sesión y usuario
-  localStorage.removeItem('userId');
-  localStorage.removeItem('sessionId');
+  localStorage.removeItem("userId");
+  localStorage.removeItem("sessionId");
   document.getElementById("chat-ui").style.display = "none";
   document.getElementById("auth-forms").style.display = "block";
   document.getElementById("login-username").value = "";
@@ -125,34 +134,43 @@ async function sendMessage() {
   chatBox.innerHTML += `<p><strong>You:</strong> ${userInput.value}</p>`;
 
   // Obtener o generar sessionId y userId
-  let sessionId = localStorage.getItem('sessionId');
-  let userId = localStorage.getItem('userId') || clientId.value;
-  // Enviar mensaje a FastAPI
+  let sessionId = localStorage.getItem("sessionId");
+  let userId = localStorage.getItem("userId") || clientId.value;
+  // Enviar mensaje a FastAPI, asegurando que nunca se envíe undefined
   let response = await fetch("http://127.0.0.1:8000/chat/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       message: userInput.value,
       model: modelSelect.value,
-      cliente_id: userId,
-      session_id: sessionId
+      cliente_id: userId ?? null,
+      session_id: sessionId ?? null,
     }),
   });
+
+  if (!response.ok) {
+    chatBox.innerHTML += `<p style="color:red;"><strong>Bot:</strong> Error: No se pudo procesar el mensaje. (Código ${response.status})</p>`;
+    return;
+  }
 
   let data = await response.json();
 
   // Guardar sessionId si el backend lo devuelve (primera vez)
   if (data.session_id) {
     // Antes de cambiar el sessionId, guardar el anterior
-    let currentSessionId = localStorage.getItem('sessionId');
+    let currentSessionId = localStorage.getItem("sessionId");
     if (currentSessionId && currentSessionId !== data.session_id) {
-      localStorage.setItem('lastSessionId', currentSessionId);
+      localStorage.setItem("lastSessionId", currentSessionId);
     }
-    localStorage.setItem('sessionId', data.session_id);
+    localStorage.setItem("sessionId", data.session_id);
   }
 
   // Display bot response
-  chatBox.innerHTML += `<p><strong>Bot:</strong> ${data.reply}</p>`;
+  if (data.reply !== undefined) {
+    chatBox.innerHTML += `<p><strong>Bot:</strong> ${data.reply}</p>`;
+  } else {
+    chatBox.innerHTML += `<p style="color:red;"><strong>Bot:</strong> Error: No se pudo obtener respuesta del bot.</p>`;
+  }
 
   // Clear input field
   userInput.value = "";
@@ -162,8 +180,8 @@ async function sendMessage() {
 }
 
 // Al cargar la página, mantener sesión si existe
-window.onload = function() {
-  const userId = localStorage.getItem('userId');
+window.onload = function () {
+  const userId = localStorage.getItem("userId");
   if (userId) {
     document.getElementById("auth-forms").style.display = "none";
     document.getElementById("chat-ui").style.display = "block";
@@ -175,4 +193,3 @@ window.onload = function() {
     document.getElementById("chat-ui").style.display = "none";
   }
 };
-
