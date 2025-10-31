@@ -34,7 +34,7 @@ async function loadSessionHistory() {
   }
 }
 // --- Manejo de expiración automática de sesión ---
-const SESSION_TIMEOUT_MINUTES = 1;
+const SESSION_TIMEOUT_MINUTES = 15;
 let sessionTimeoutHandle = null;
 
 function resetSessionTimeout() {
