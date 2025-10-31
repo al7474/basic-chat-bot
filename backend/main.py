@@ -1,4 +1,7 @@
 
+from fastapi import Query
+
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +22,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 @app.on_event("startup")
 async def startup():
@@ -100,7 +105,34 @@ async def chat_with_bot(user_message: UserMessage):
     })
     return {"reply": response, "session_id": session.id}
 
+# Endpoint para obtener historial de una sesión
+@app.get("/session/{session_id}/history")
+async def get_session_history(session_id: str, cliente_id: str = Query(None)):
+    # Busca todas las conversaciones de la sesión, opcionalmente filtrando por cliente_id
+    filters = {"sessionId": session_id}
+    if cliente_id:
+        filters["userId"] = cliente_id
+    conversations = await db.conversation.find_many(
+        where=filters,
+        order={"createdAt": "asc"}
+    )
+    history = [
+        {"message": c.message, "sender": c.sender, "createdAt": c.createdAt.isoformat()} for c in conversations
+    ]
+    return {"history": history}
+
+# Endpoint para obtener todas las sesiones de un usuario ordenadas por fecha
+@app.get("/user/{user_id}/sessions")
+async def get_user_sessions(user_id: str):
+    sessions = await db.session.find_many(
+        where={"userId": user_id},
+        order={"createdAt": "desc"}
+    )
+    # Solo devolver id y fecha para eficiencia
+    return [{"id": s.id, "createdAt": s.createdAt.isoformat()} for s in sessions]
+
 # Root route for testing
 @app.get("/")
 async def root():
     return {"message": "Chatbot Backend Running!"}
+

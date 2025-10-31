@@ -1,3 +1,51 @@
+// Cargar historial de la sesión actual
+async function loadSessionHistory() {
+  let chatBox = document.getElementById("chat-box");
+  chatBox.innerHTML = "";
+  let userId = localStorage.getItem('userId') || document.getElementById("client-id").value;
+  // Obtener todas las sesiones del usuario
+  let sessionsRes = await fetch(`http://127.0.0.1:8000/user/${userId}/sessions`);
+  if (!sessionsRes.ok) return;
+  let sessions = await sessionsRes.json();
+  for (let session of sessions) {
+    let res = await fetch(`http://127.0.0.1:8000/session/${session.id}/history?cliente_id=${userId}`);
+    if (res.ok) {
+      let data = await res.json();
+      if (data.history.length > 0) {
+        // Guardar este sessionId como el actual
+        localStorage.setItem('sessionId', session.id);
+        data.history.forEach(msg => {
+          if (msg.sender === "user") {
+            chatBox.innerHTML += `<p><strong>You:</strong> ${msg.message}</p>`;
+          } else {
+            chatBox.innerHTML += `<p><strong>Bot:</strong> ${msg.message}</p>`;
+          }
+        });
+        break;
+      }
+    }
+  }
+}
+// --- Manejo de expiración automática de sesión ---
+const SESSION_TIMEOUT_MINUTES = 15;
+let sessionTimeoutHandle = null;
+
+function resetSessionTimeout() {
+  if (sessionTimeoutHandle) clearTimeout(sessionTimeoutHandle);
+  sessionTimeoutHandle = setTimeout(() => {
+    // Antes de borrar el sessionId, guardar el anterior
+    let currentSessionId = localStorage.getItem('sessionId');
+    if (currentSessionId) {
+      localStorage.setItem('lastSessionId', currentSessionId);
+    }
+    localStorage.removeItem('sessionId');
+    // Opcional: notificar al usuario
+    const chatBox = document.getElementById("chat-box");
+    if (chatBox) {
+      chatBox.innerHTML += '<p style="color:gray;"><em>La sesión ha expirado, se iniciará una nueva conversación.</em></p>';
+    }
+  }, SESSION_TIMEOUT_MINUTES * 60 * 1000);
+}
 function showRegister() {
   document.getElementById("login-form").style.display = "none";
   document.getElementById("register-form").style.display = "block";
@@ -95,6 +143,11 @@ async function sendMessage() {
 
   // Guardar sessionId si el backend lo devuelve (primera vez)
   if (data.session_id) {
+    // Antes de cambiar el sessionId, guardar el anterior
+    let currentSessionId = localStorage.getItem('sessionId');
+    if (currentSessionId && currentSessionId !== data.session_id) {
+      localStorage.setItem('lastSessionId', currentSessionId);
+    }
     localStorage.setItem('sessionId', data.session_id);
   }
 
@@ -103,6 +156,9 @@ async function sendMessage() {
 
   // Clear input field
   userInput.value = "";
+
+  // Reiniciar temporizador de expiración de sesión
+  resetSessionTimeout();
 }
 
 // Al cargar la página, mantener sesión si existe
@@ -112,6 +168,8 @@ window.onload = function() {
     document.getElementById("auth-forms").style.display = "none";
     document.getElementById("chat-ui").style.display = "block";
     document.getElementById("client-id").value = userId;
+    resetSessionTimeout();
+    loadSessionHistory();
   } else {
     document.getElementById("auth-forms").style.display = "block";
     document.getElementById("chat-ui").style.display = "none";
