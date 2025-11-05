@@ -192,4 +192,23 @@ window.onload = function () {
     document.getElementById("auth-forms").style.display = "block";
     document.getElementById("chat-ui").style.display = "none";
   }
+
+  // --- Enter en login ---
+  document.getElementById("login-username").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") loginUser();
+  });
+  document.getElementById("login-password").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") loginUser();
+  });
+  // --- Enter en registro ---
+  document.getElementById("register-username").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") registerUser();
+  });
+  document.getElementById("register-password").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") registerUser();
+  });
+  // --- Enter en chat ---
+  document.getElementById("user-input").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") sendMessage();
+  });
 };

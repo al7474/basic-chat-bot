@@ -7,39 +7,56 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="chat-container">
-      <div id="auth-forms">
-        <div id="login-form">
-          <h3>Iniciar Sesión</h3>
-          <input type="text" id="login-username" placeholder="Usuario" />
-          <input type="password" id="login-password" placeholder="Contraseña" />
-          <button onclick="loginUser()">Entrar</button>
-          <p>¿No tienes cuenta? <a href="#" onclick="showRegister()">Regístrate</a></p>
+    <div class="main-bg">
+      <div class="centered-container">
+        <div class="card" id="auth-forms">
+          <div id="login-form">
+            <h2 class="card-title">Iniciar Sesión</h2>
+            <div class="input-group">
+              <input type="text" id="login-username" placeholder="Usuario" />
+            </div>
+            <div class="input-group">
+              <input type="password" id="login-password" placeholder="Contraseña" />
+            </div>
+            <button class="btn-primary" onclick="loginUser()">Entrar</button>
+            <p class="switch-link">¿No tienes cuenta? <a href="#" onclick="showRegister()">Regístrate</a></p>
+          </div>
+          <div id="register-form" style="display:none;">
+            <h2 class="card-title">Registro</h2>
+            <div class="input-group">
+              <input type="text" id="register-username" placeholder="Usuario" />
+            </div>
+            <div class="input-group">
+              <input type="password" id="register-password" placeholder="Contraseña" />
+            </div>
+            <button class="btn-primary" onclick="registerUser()">Registrar</button>
+            <p class="switch-link">¿Ya tienes cuenta? <a href="#" onclick="showLogin()">Inicia sesión</a></p>
+          </div>
         </div>
-        <div id="register-form" style="display:none;">
-          <h3>Registro</h3>
-          <input type="text" id="register-username" placeholder="Usuario" />
-          <input type="password" id="register-password" placeholder="Contraseña" />
-          <button onclick="registerUser()">Registrar</button>
-          <p>¿Ya tienes cuenta? <a href="#" onclick="showLogin()">Inicia sesión</a></p>
+        <div class="card chat-card" id="chat-ui" style="display:none;">
+          <div class="chat-header">
+            <span class="chat-title">Chatbot</span>
+            <button id="logout-btn" class="btn-secondary" onclick="logoutUser()">Cerrar sesión</button>
+          </div>
+          <div class="chat-box" id="chat-box"></div>
+          <div class="chat-controls">
+            <div class="control-group">
+              <label for="model-select"><strong>Modelo:</strong></label>
+              <select id="model-select">
+                <option value="gemini">Gemini</option>
+                <option value="groq">Groq</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="client-id"><strong>ID Cliente:</strong></label>
+              <input type="text" id="client-id" value="cliente_demo" readonly />
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="user-input" placeholder="Escribe un mensaje..." />
+            <button class="btn-primary" onclick="sendMessage()">Enviar</button>
+          </div>
         </div>
-      </div>
-      <div id="chat-ui" style="display:none;">
-        <button id="logout-btn" style="float:right; margin-bottom:10px;" onclick="logoutUser()">Cerrar sesión</button>
-        <div class="chat-box" id="chat-box"></div>
-        <div style="margin-bottom: 10px;">
-          <label for="model-select"><strong>Modelo:</strong></label>
-          <select id="model-select">
-            <option value="gemini">Gemini</option>
-            <option value="groq">Groq</option>
-          </select>
-        </div>
-        <div style="margin-bottom: 10px;">
-          <label for="client-id"><strong>ID Cliente:</strong></label>
-          <input type="text" id="client-id" value="cliente_demo" style="width: 120px;" readonly />
-        </div>
-        <input type="text" id="user-input" placeholder="Type a message..." />
-        <button onclick="sendMessage()">Send</button>
       </div>
     </div>
   <script src="script.js"></script>
