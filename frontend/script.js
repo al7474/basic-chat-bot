@@ -2,35 +2,36 @@
 async function loadSessionHistory() {
   let chatBox = document.getElementById("chat-box");
   chatBox.innerHTML = "";
-  let userId =
-    localStorage.getItem("userId") ||
-    document.getElementById("client-id").value;
+  let userId = localStorage.getItem("userId") || document.getElementById("client-id").value;
   // Obtener todas las sesiones del usuario
-  let sessionsRes = await fetch(
-    `http://127.0.0.1:8000/user/${userId}/sessions`
-  );
+  let sessionsRes = await fetch(`http://127.0.0.1:8000/user/${userId}/sessions`);
   if (!sessionsRes.ok) return;
   let sessions = await sessionsRes.json();
+  // Ordenar sesiones de la más antigua a la más reciente
+  sessions = sessions.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  // Mostrar el historial de todas las sesiones con mensajes
+  let firstSessionWithMessages = null;
   for (let session of sessions) {
-    let res = await fetch(
-      `http://127.0.0.1:8000/session/${session.id}/history?cliente_id=${userId}`
-    );
+    let res = await fetch(`http://127.0.0.1:8000/session/${session.id}/history?cliente_id=${userId}`);
     if (res.ok) {
       let data = await res.json();
       if (data.history.length > 0) {
-        if (!localStorage.getItem("sessionId")) {
-          localStorage.setItem("sessionId", session.id);
+        if (!firstSessionWithMessages) {
+          firstSessionWithMessages = session.id;
         }
         data.history.forEach((msg) => {
           if (msg.sender === "user") {
-            chatBox.innerHTML += `<p><strong>You:</strong> ${msg.message}</p>`;
+            chatBox.innerHTML += `<p class=\"user-msg\"><strong>You:</strong> ${msg.message}</p>`;
           } else {
-            chatBox.innerHTML += `<p><strong>Bot:</strong> ${msg.message}</p>`;
+            chatBox.innerHTML += `<p class=\"bot-msg\"><strong>Bot:</strong> ${msg.message}</p>`;
           }
         });
-        break;
       }
     }
+  }
+  // Guardar el sessionId de la primera sesión con mensajes si no existe
+  if (firstSessionWithMessages && !localStorage.getItem("sessionId")) {
+    localStorage.setItem("sessionId", firstSessionWithMessages);
   }
 }
 // --- Manejo de expiración automática de sesión ---
